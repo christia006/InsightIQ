@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Behavior Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>User Behavior Tracking System</h1>
+        <p>Interaksi Anda di halaman ini akan dicatat.</p>
+
+        <button id="myButton">Klik Saya!</button>
+        <div class="scroll-area">
+            <p>Scroll ke bawah untuk melihat lebih banyak konten.</p>
+            <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+            <p>Akhir area scroll.</p>
+        </div>
+
+        <hr>
+
+        <h2>Analisis Perilaku Pengguna</h2>
+        <button id="runAnalysisButton">Jalankan Analisis Clustering</button>
+        <div id="analysisResult">
+            </div>
+
+        <h3>Tren Perilaku (Visualisasi Sederhana)</h3>
+        <canvas id="behaviorChart" width="800" height="400"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
