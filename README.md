@@ -23,6 +23,3 @@
 - PostgreSQL (via pgAdmin 4)
 - Streamlit buat tampilannya
 
-## 💡 Cocok Buat Apa?
-
-InsightIQ cocok untuk developer dan UX designer yang mau tauu gimana pengguna pakai aplikasi — tapi tanpa ngirim data ke server mana pun. Semua tetap di laptop kamu, tapi tetap powerful buat analisis. Konsepnya mirip alat analitik internal yang biasa dipakai tim produk besar.
