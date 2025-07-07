@@ -1,4 +1,3 @@
-
 function getOrCreateUserId() {
     let userId = localStorage.getItem('user_id');
     if (!userId) {
@@ -33,71 +32,111 @@ async function sendEvent(eventType, eventData = {}) {
             const errorText = await response.text();
             console.error(`Error sending event: ${response.status} - ${errorText}`);
         } else {
-            // console.log(`Event '${eventType}' sent successfully.`);
+            // console.log(`Event '${eventType}' sent successfully.`); // Uncomment for debugging
         }
     } catch (error) {
         console.error('Network error while sending event:', error);
     }
 }
 
-
-document.getElementById('myButton').addEventListener('click', (event) => {
-    sendEvent('click', {
-        element_id: 'myButton',
-        x: event.clientX,
-        y: event.clientY
-    });
-});
-
-
-let scrollTimeout;
-document.querySelector('.scroll-area').addEventListener('scroll', () => {
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-        const element = document.querySelector('.scroll-area');
-        const scrollPercentage = (element.scrollTop / (element.scrollHeight - element.clientHeight)) * 100;
-        sendEvent('scroll', {
-            scroll_position: element.scrollTop,
-            scroll_percentage: scrollPercentage.toFixed(2)
+// --- Event Tracking Logic (for tracking.html) ---
+function setupTrackingPage() {
+    console.log("Tracking page: Setting up event listeners.");
+    // 1. Click Tracking
+    const myButton = document.getElementById('myButton');
+    if (myButton) { // Ensure element exists on this page
+        myButton.addEventListener('click', (event) => {
+            sendEvent('click', {
+                element_id: 'myButton',
+                x: event.clientX,
+                y: event.clientY
+            });
+            console.log("Tracking page: 'Klik Saya!' button clicked.");
         });
-    }, 200);
-});
+    }
 
+    // 2. Scroll Tracking
+    const scrollArea = document.querySelector('.scroll-area');
+    if (scrollArea) { // Ensure element exists on this page
+        let scrollTimeout;
+        scrollArea.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                const element = document.querySelector('.scroll-area');
+                const scrollPercentage = (element.scrollTop / (element.scrollHeight - element.clientHeight)) * 100;
+                sendEvent('scroll', {
+                    scroll_position: element.scrollTop,
+                    scroll_percentage: scrollPercentage.toFixed(2)
+                });
+                console.log(`Tracking page: Scroll event triggered, percentage: ${scrollPercentage.toFixed(2)}%`);
+            }, 200); // Limit scroll event frequency
+        });
+    }
 
-let pageLoadTime = Date.now();
-window.addEventListener('beforeunload', () => {
-    const duration = Date.now() - pageLoadTime;
-    sendEvent('page_view_duration', {
-        duration_ms: duration,
-        duration_seconds: (duration / 1000).toFixed(2)
+    // 3. Page Interaction Duration Tracking (Page View Duration)
+    let pageLoadTime = Date.now();
+    window.addEventListener('beforeunload', () => {
+        const duration = Date.now() - pageLoadTime;
+        sendEvent('page_view_duration', {
+            duration_ms: duration,
+            duration_seconds: (duration / 1000).toFixed(2)
+        });
+        console.log(`Tracking page: Page view duration sent: ${duration / 1000} seconds.`);
     });
-});
 
-
-document.addEventListener('DOMContentLoaded', () => {
+    // Initial page view event on DOM content loaded
     sendEvent('page_view', { url: window.location.href });
-});
+    console.log("Tracking page: Initial page_view event sent.");
+}
 
 
-
-// Inisialisasi Chart.js
-const ctx = document.getElementById('behaviorChart').getContext('2d');
-let behaviorChart;
+// --- Analysis and Visualization Logic (for analysis.html) ---
+let behaviorChart; // Declare globally for analysis page
+let ctx; // Declare globally
 
 async function fetchAndVisualizeTrends() {
+    console.log("Analysis page: fetchAndVisualizeTrends called.");
+    ctx = document.getElementById('behaviorChart').getContext('2d');
+    const chartWrapper = document.getElementById('chartWrapper'); 
+
+    // Temporarily hide the canvas and display a loading message within chartWrapper
+    ctx.canvas.style.display = 'none';
+    chartWrapper.innerHTML = '<p id="chartStatusMessage">Memuat data tren...</p>';
+    console.log("Analysis page: Chart loading message displayed.");
+
     try {
         const response = await fetch(`${API_BASE_URL}/get_event_counts`);
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
         }
         const data = await response.json();
-        console.log("Fetched event counts:", data);
+        console.log("Analysis page: Fetched event counts data:", data);
+
+        const chartStatusMessage = document.getElementById('chartStatusMessage');
+
+        if (data.length === 0) {
+            console.log("Analysis page: No event data available for trend visualization.");
+            // If no data, display a message
+            chartStatusMessage.textContent = 'Tidak ada data event yang tersedia untuk visualisasi tren.';
+            if (behaviorChart) {
+                behaviorChart.destroy(); // Ensure old chart is destroyed
+            }
+            ctx.canvas.style.display = 'none'; // Ensure canvas remains hidden
+            return;
+        }
+
+        // If data is available, clear the status message and display the canvas
+        chartWrapper.innerHTML = ''; // Clear status message from wrapper
+        chartWrapper.appendChild(ctx.canvas); // Add canvas back to the wrapper
+        ctx.canvas.style.display = 'block'; // Show canvas
+        console.log("Analysis page: Chart canvas displayed.");
 
         const eventTypes = data.map(item => item.event_type);
         const eventCounts = data.map(item => item.count);
 
         if (behaviorChart) {
-            behaviorChart.destroy(); 
+            behaviorChart.destroy(); // Destroy old chart if it exists
+            console.log("Analysis page: Existing chart destroyed.");
         }
 
         behaviorChart = new Chart(ctx, {
@@ -150,49 +189,83 @@ async function fetchAndVisualizeTrends() {
                 }
             }
         });
+        console.log("Analysis page: New chart created successfully.");
 
     } catch (error) {
-        console.error('Error fetching and visualizing trends:', error);
+        console.error('Analysis page: Error fetching and visualizing trends:', error);
+        const chartStatusMessage = document.getElementById('chartStatusMessage');
+        chartStatusMessage.textContent = 'Gagal memuat visualisasi tren. Silakan coba lagi.';
+        if (behaviorChart) {
+            behaviorChart.destroy(); // Ensure old chart is destroyed
+        }
+        ctx.canvas.style.display = 'none'; // Ensure canvas remains hidden
     }
 }
 
-document.getElementById('runAnalysisButton').addEventListener('click', async () => {
-    const analysisResultDiv = document.getElementById('analysisResult');
-    analysisResultDiv.innerHTML = '<p>Menjalankan analisis clustering... Mohon tunggu.</p>';
+function setupAnalysisPage() {
+    console.log("Analysis page: Setting up analysis page functions.");
+    // Button to run clustering analysis
+    const runAnalysisButton = document.getElementById('runAnalysisButton');
+    if (runAnalysisButton) { // Ensure element exists on this page
+        runAnalysisButton.addEventListener('click', async () => {
+            console.log("Analysis page: 'Jalankan Analisis Clustering' button clicked.");
+            const analysisResultDiv = document.getElementById('analysisResult');
+            analysisResultDiv.innerHTML = '<p>Menjalankan analisis clustering... Mohon tunggu.</p>';
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/run_clustering`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Clustering result:", data);
-
-        let resultHtml = '<h3>Hasil Segmentasi Pengguna (KMeans)</h3>';
-        if (data.clusters && Object.keys(data.clusters).length > 0) {
-            resultHtml += '<p>Total pengguna unik dianalisis: ' + data.total_users_analyzed + '</p>';
-            resultHtml += '<p>Jumlah Kluster: ' + data.num_clusters + '</p>';
-            for (const clusterId in data.clusters) {
-                resultHtml += `<h4>Kluster ${clusterId} (Anggota: ${data.clusters[clusterId].users.length} pengguna)</h4>`;
-                resultHtml += '<p><strong>Ciri-ciri Kluster (Rata-rata):</strong></p>';
-                resultHtml += '<ul>';
-                for (const feature in data.clusters[clusterId].average_features) {
-                    resultHtml += `<li>${feature}: ${data.clusters[clusterId].average_features[feature].toFixed(2)}</li>`;
+            try {
+                const response = await fetch(`${API_BASE_URL}/run_clustering`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
                 }
-                resultHtml += '</ul>';
-               
-            }
-        } else {
-            resultHtml += '<p>Tidak ada data yang cukup untuk menjalankan clustering atau terjadi kesalahan.</p>';
-        }
-        analysisResultDiv.innerHTML = resultHtml;
+                const data = await response.json();
+                console.log("Analysis page: Clustering result data:", data);
 
-    } catch (error) {
-        console.error('Error running clustering analysis:', error);
-        analysisResultDiv.innerHTML = '<p style="color: red;">Gagal menjalankan analisis clustering. Silakan periksa konsol untuk detail.</p>';
+                let resultHtml = '<h3>Hasil Segmentasi Pengguna (KMeans)</h3>';
+                if (data.clusters && Object.keys(data.clusters).length > 0) {
+                    resultHtml += '<p>Total pengguna unik dianalisis: ' + data.total_users_analyzed + '</p>';
+                    resultHtml += '<p>Jumlah Kluster: ' + data.num_clusters + '</p>';
+                    for (const clusterId in data.clusters) {
+                        resultHtml += `<h4>Kluster ${clusterId} (Anggota: ${data.clusters[clusterId].users.length} pengguna)</h4>`;
+                        resultHtml += '<p><strong>Ciri-ciri Kluster (Rata-rata):</strong></p>';
+                        resultHtml += '<ul>';
+                        for (const feature in data.clusters[clusterId].average_features) {
+                            resultHtml += `<li>${feature}: ${data.clusters[clusterId].average_features[feature].toFixed(2)}</li>`;
+                        }
+                        resultHtml += '</ul>';
+                        // resultHtml += `<p>Pengguna di kluster ini: ${data.clusters[clusterId].users.join(', ')}</p>`; // Can be displayed if desired
+                    }
+                    console.log("Analysis page: Clustering results rendered successfully.");
+                } else {
+                    resultHtml += '<p>Tidak ada data yang cukup untuk menjalankan clustering atau terjadi kesalahan. (Periksa log server untuk detail lebih lanjut).</p>';
+                    console.warn("Analysis page: Clustering data is empty or invalid.", data);
+                }
+                analysisResultDiv.innerHTML = resultHtml;
+
+            } catch (error) {
+                console.error('Analysis page: Error running clustering analysis:', error);
+                analysisResultDiv.innerHTML = '<p style="color: red;">Gagal menjalankan analisis clustering. Silakan periksa konsol browser dan log server untuk detail.</p>';
+            }
+        });
+    }
+
+    // Call the visualization function when the analysis page loads
+    fetchAndVisualizeTrends();
+}
+
+
+// --- Main Entry Point: Determine which page is loaded ---
+document.addEventListener('DOMContentLoaded', () => {
+    const path = window.location.pathname;
+    console.log("DOMContentLoaded: Current path is", path);
+
+    if (path.includes('tracking.html')) {
+        console.log("DOMContentLoaded: Loading tracking page setup...");
+        setupTrackingPage();
+    } else if (path.includes('analysis.html')) {
+        console.log("DOMContentLoaded: Loading analysis page setup...");
+        setupAnalysisPage();
+    } else {
+        console.log("DOMContentLoaded: Loading index page (no specific script setup needed).");
+        // No specific script setup needed for index.html as it's just navigation
     }
 });
-
-
-
-document.addEventListener('DOMContentLoaded', fetchAndVisualizeTrends);

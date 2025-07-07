@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Perilaku Pengguna</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Analisis Perilaku Pengguna</h1>
+        <p>Lihat tren interaksi dan segmentasi pengguna di sini.</p>
+
+        <h2>Analisis Clustering</h2>
+        <button id="runAnalysisButton">Jalankan Analisis Clustering</button>
+        <div id="analysisResult">
+            <!-- Hasil analisis akan ditampilkan di sini -->
+        </div>
+
+        <h3>Tren Perilaku</h3>
+        <div id="chartWrapper">
+            <canvas id="behaviorChart" width="800" height="400"></canvas>
+        </div>
+        <br>
+        <button onclick="location.href='index.html'">Kembali ke Beranda</button>
+    </div>
+
+    <!-- Memuat Chart.js dari CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Memuat script.js Anda untuk analisis dan visualisasi -->
+    <script src="script.js"></script>
+</body>
+</html>

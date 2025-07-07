@@ -5,6 +5,7 @@ import json
 from sklearn.cluster import KMeans
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import StandardScaler
 
 app = Flask(__name__)
 CORS(app) # Mengizinkan Cross-Origin Resource Sharing (penting untuk frontend)
@@ -108,36 +109,41 @@ def run_clustering():
 
     try:
         cur = conn.cursor()
-        # Ambil semua event untuk analisis
         query = "SELECT user_id, event_type, timestamp, event_data FROM user_events ORDER BY timestamp ASC;"
         cur.execute(query)
         events = cur.fetchall()
         cur.close()
 
+        print(f"DEBUG: Total events fetched from DB: {len(events)}")
         if not events:
             return jsonify({"message": "No events found for clustering."}), 200
 
-        # Konversi ke DataFrame Pandas
         df = pd.DataFrame(events, columns=['user_id', 'event_type', 'timestamp', 'event_data'])
+        print(f"DEBUG: DataFrame head after creation:\n{df.head()}")
+        print(f"DEBUG: DataFrame dtypes after creation:\n{df.dtypes}")
 
-        # Pra-pemrosesan Data untuk Clustering
-        # Contoh: Fitur berdasarkan frekuensi event dan durasi interaksi
         user_features = {}
-        for user_id in df['user_id'].unique():
+        unique_users = df['user_id'].unique()
+        print(f"DEBUG: Unique users found: {len(unique_users)}")
+
+        for user_id in unique_users:
             user_df = df[df['user_id'] == user_id]
-
-            # Fitur 1: Jumlah total event
             total_events = len(user_df)
-
-            # Fitur 2: Frekuensi masing-masing tipe event
             event_type_counts = user_df['event_type'].value_counts().to_dict()
 
-            # Fitur 3: Rata-rata durasi interaksi (jika ada event page_view_duration)
             avg_duration = 0
             duration_events = user_df[user_df['event_type'] == 'page_view_duration']
             if not duration_events.empty:
-                durations = [e.get('duration_seconds', 0) for e in duration_events['event_data'] if isinstance(e, dict)]
-                if durations: # Pastikan ada durasi yang valid
+                durations = []
+                for e_data in duration_events['event_data']:
+                    if isinstance(e_data, dict) and 'duration_seconds' in e_data:
+                        try:
+                            duration_val = float(e_data['duration_seconds'])
+                            durations.append(duration_val)
+                        except (ValueError, TypeError):
+                            pass
+                
+                if durations:
                     avg_duration = np.mean(durations)
 
             user_features[user_id] = {
@@ -150,36 +156,41 @@ def run_clustering():
         
         features_df = pd.DataFrame.from_dict(user_features, orient='index')
         features_df.index.name = 'user_id'
+        print(f"DEBUG: features_df before numeric conversion:\n{features_df.head()}")
+        print(f"DEBUG: features_df dtypes before numeric conversion:\n{features_df.dtypes}")
+
+        for col in features_df.columns:
+            features_df[col] = pd.to_numeric(features_df[col], errors='coerce').fillna(0)
         
-        # Penanganan Missing Values (jika ada) dan Normalisasi (penting untuk KMeans)
-        features_df = features_df.fillna(0) # Ganti NaN dengan 0
-        
-        # Skala fitur agar KMeans bekerja lebih baik
-        from sklearn.preprocessing import StandardScaler
+        print(f"DEBUG: features_df after numeric conversion and fillna:\n{features_df.head()}")
+        print(f"DEBUG: features_df dtypes after numeric conversion and fillna:\n{features_df.dtypes}")
+
+        if features_df.empty:
+            return jsonify({"message": "No valid numerical features found for clustering after preprocessing.", "total_users_analyzed": 0}), 200
+
         scaler = StandardScaler()
         scaled_features = scaler.fit_transform(features_df)
+        print(f"DEBUG: Shape of scaled_features: {scaled_features.shape}")
 
-        # Menentukan jumlah kluster (bisa diatur manual atau menggunakan metode elbow/silhouette score)
-        # Untuk contoh ini, kita set manual 3-5 kluster
-        num_clusters = min(5, len(features_df)) # Maksimal 5 kluster, atau sebanyak jumlah pengguna jika kurang
+        num_clusters = min(5, len(features_df))
+        print(f"DEBUG: Number of users for clustering: {len(features_df)}, Calculated num_clusters: {num_clusters}")
         if num_clusters < 2:
              return jsonify({"message": "Not enough unique users to perform clustering (need at least 2).", "total_users_analyzed": len(features_df)}), 200
 
-        kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init=10) # n_init for modern scikit-learn
+        kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init=10)
         features_df['cluster'] = kmeans.fit_predict(scaled_features)
+        print(f"DEBUG: features_df with cluster assignments:\n{features_df.head()}")
 
-        # Siapkan hasil untuk dikirim ke frontend
         cluster_results = {}
         for cluster_id in range(num_clusters):
             cluster_users = features_df[features_df['cluster'] == cluster_id]
-            
-            # Hitung rata-rata fitur untuk kluster ini (untuk ciri-ciri kluster)
             avg_features = cluster_users.drop('cluster', axis=1).mean().to_dict()
             
             cluster_results[cluster_id] = {
                 "users": cluster_users.index.tolist(),
                 "average_features": avg_features
             }
+        print(f"DEBUG: Cluster results prepared: {cluster_results}")
 
         return jsonify({
             "message": "Clustering performed successfully!",
@@ -190,9 +201,11 @@ def run_clustering():
 
     except Exception as e:
         print(f"Error performing clustering: {e}")
+        if "dtypes are not compatible" in str(e):
+             return jsonify({"error": f"Failed to perform clustering due to incompatible data types. Ensure all features are numeric. Detail: {e}"}), 500
         return jsonify({"error": f"Failed to perform clustering: {e}"}), 500
     finally:
         conn.close()
 
 if __name__ == '__main__':
-    app.run(debug=True) # debug=True akan mereload server saat ada perubahan kode
+    app.run(debug=True)
