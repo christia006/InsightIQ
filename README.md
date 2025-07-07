@@ -2,8 +2,6 @@
 
 InsightIQ adalah platform untuk memantau dan menganalisis perilaku pengguna di aplikasi, seperti klik, scroll, dan waktu interaksi — semuanya **disimpan secara lokal** di PostgreSQL dan divisualisasikan lewat dashboard interaktif.
 
-![Tampilan Dashboard](images/visual%20hasil%20perilaku.png)
-
 ---
 
 ## 🚀 Fitur Utama
@@ -53,6 +51,8 @@ InsightIQ adalah platform untuk memantau dan menganalisis perilaku pengguna di a
 
 ### Input Halaman
 ![Input Halaman](images/input%20tampilan.png)
+
+![Tampilan Dashboard](images/visual%20hasil%20perilaku.png)
 
 ### Script Tracking
 ![Script Tracking](images/script.png)
