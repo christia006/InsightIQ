@@ -4,6 +4,7 @@
 
 *InsightIQ adalah platform untuk memantau dan menganalisis perilaku pengguna di aplikasi, seperti klik, scroll, dan waktu interaksi — semuanya **disimpan secara lokal** di PostgreSQL dan divisualisasikan lewat dashboard interaktif.*
 
+---
 
 *Built with the tools and technologies:*
 
