@@ -4,9 +4,6 @@
 
 *InsightIQ adalah platform untuk memantau dan menganalisis perilaku pengguna di aplikasi, seperti klik, scroll, dan waktu interaksi — semuanya **disimpan secara lokal** di PostgreSQL dan divisualisasikan lewat dashboard interaktif.*
 
-[![last commit](https://img.shields.io/badge/last%20commit-today-brightgreen)](#)
-[![python](https://img.shields.io/badge/python-100%25-yellow?logo=python&logoColor=white)](#)
-[![local first](https://img.shields.io/badge/Local%20First-✅-blue)](#)
 
 *Built with the tools and technologies:*
 
