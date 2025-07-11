@@ -1,5 +1,3 @@
-# 📊 InsightIQ — Simulasi & Analisis Perilaku Pengguna Secara Lokal
-
 <div align="center">
 
 # 📊 **InsightIQ — Simulasi & Analisis Perilaku Pengguna Secara Lokal**
