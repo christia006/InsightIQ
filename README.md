@@ -21,7 +21,8 @@
 ![KMeans Clustering](https://img.shields.io/badge/KMeans%20Clustering-🧠-success)
 ![Local Privacy](https://img.shields.io/badge/Privacy%20First-🔒-blue)
 
----
+
+</div>
 
 ## 📸 Tampilan Tambahan
 
